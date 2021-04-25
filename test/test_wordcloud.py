@@ -327,6 +327,20 @@ def test_process_text():
     assert isinstance(result, dict)
 
 
+def test_process_text_default_patterns():
+    wc = WordCloud(stopwords=set(), include_numbers=True, min_word_length=2)
+    words = wc.process_text(THIS)
+
+    wc2 = WordCloud(stopwords=set(), include_numbers=True, min_word_length=1)
+    words2 = wc2.process_text(THIS)
+
+    assert "a" not in words
+    assert "3" not in words
+
+    assert "a" in words2
+    assert "3" in words2
+
+
 def test_process_text_regexp_parameter():
     # test that word processing is influenced by `regexp`
     wc = WordCloud(max_words=50, regexp=r'\w{5}')
@@ -465,3 +479,28 @@ def test_plural_stopwords():
 
     w = WordCloud(collocations=False).generate(x)
     assert w.words_['wa'] < 1
+
+
+def test_max_font_size_as_mask_height():
+    # test if max font size will respect the mask height
+    x = '''hello hello hello
+    bye'''
+
+    # Get default wordcloud size
+    wcd = WordCloud()
+    default_size = (wcd.height, wcd.width)
+    # Make sure the size we are using is larger than the default size
+    size = (default_size[0] * 2, default_size[1] * 2)
+
+    # using mask, all drawable
+    mask = np.zeros(size, dtype=np.int)
+    mask[:, :] = 0
+    wc = WordCloud(mask=mask, random_state=42)
+    wc.generate(x)
+
+    # no mask
+    wc2 = WordCloud(width=size[1], height=size[0], random_state=42)
+    wc2.generate(x)
+
+    # Check if the biggest element has the same font size
+    assert wc.layout_[0][1] == wc2.layout_[0][1]

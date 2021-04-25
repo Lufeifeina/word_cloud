@@ -290,9 +290,11 @@ class WordCloud(object):
         .. versionchanged: 2.0
             ``words_`` is now a dictionary
 
-    ``layout_`` : list of tuples (string, int, (int, int), int, color))
-        Encodes the fitted word cloud. Encodes for each word the string, font
-        size, position, orientation and color.
+    ``layout_`` : list of tuples ((string, float), int, (int, int), int, color))
+        Encodes the fitted word cloud. For each word, it encodes the string, 
+        normalized frequency, font size, position, orientation, and color.
+        The frequencies are normalized by the most commonly occurring word.
+        The color is in the format of 'rgb(R, G, B).'
 
     Notes
     -----
@@ -364,6 +366,11 @@ class WordCloud(object):
         self.include_numbers = include_numbers
         self.min_word_length = min_word_length
         self.collocation_threshold = collocation_threshold
+
+        # Override the width and height if there is a mask
+        if mask is not None:
+            self.width = mask.shape[1]
+            self.height = mask.shape[0]
 
     def fit_words(self, frequencies):
         """Create a word_cloud from words and frequencies.
@@ -569,7 +576,8 @@ class WordCloud(object):
 
         flags = (re.UNICODE if sys.version < '3' and type(text) is unicode  # noqa: F821
                  else 0)
-        regexp = self.regexp if self.regexp is not None else r"\w[\w']+"
+        pattern = r"\w[\w']*" if self.min_word_length <= 1 else r"\w[\w']+"
+        regexp = self.regexp if self.regexp is not None else pattern
 
         words = re.findall(regexp, text, flags)
         # remove 's
